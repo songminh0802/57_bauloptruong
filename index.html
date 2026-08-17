@@ -36,13 +36,7 @@
             
             <!-- Form Bầu Chọn -->
             <form id="voteForm">
-                <!-- Thông tin người bầu -->
-                <div class="mb-8">
-                    <label class="block text-sm font-medium text-slate-700 mb-2">Họ và tên người bầu <span class="text-red-500">*</span></label>
-                    <input type="text" id="voterName" required
-                        class="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-colors"
-                        placeholder="Nhập đầy đủ họ tên của bạn">
-                </div>
+
 
                 <!-- Danh sách ứng viên -->
                 <div class="mb-8">
@@ -77,9 +71,8 @@
     <script>
         // Dữ liệu ứng viên (Cứng trên web tĩnh)
         const candidates = [
-            { id: 'UV01', name: 'Nguyễn Văn A', description: 'Thành tích học tập xuất sắc' },
-            { id: 'UV02', name: 'Trần Thị B', description: 'Năng nổ trong các hoạt động phong trào' },
-            { id: 'UV03', name: 'Lê Hoàng C', description: 'Gương mẫu, hòa đồng' }
+            { id: 'UV01', name: 'Nguyễn Ngọc Nữ', description: 'Ứng viên Lớp trưởng' },
+            { id: 'UV02', name: 'Dương Nguyễn Ngọc Mai', description: 'Ứng viên Lớp trưởng' }
         ];
 
         let selectedCandidateId = null;
@@ -95,10 +88,7 @@
             return savedVotes ? JSON.parse(savedVotes) : {};
         }
 
-        function getVoters() {
-            const savedVoters = localStorage.getItem('classVoters');
-            return savedVoters ? JSON.parse(savedVoters) : [];
-        }
+
 
         // 2. Hiển thị danh sách ứng viên
         function renderCandidates() {
@@ -177,27 +167,20 @@
         document.getElementById('voteForm').addEventListener('submit', function(e) {
             e.preventDefault();
             
-            const voterName = document.getElementById('voterName').value.trim();
-            if(!voterName) {
-                Swal.fire('Thiếu thông tin', 'Vui lòng nhập họ tên của bạn', 'warning');
-                return;
-            }
             if(!selectedCandidateId) {
                 Swal.fire('Thiếu thông tin', 'Vui lòng chọn 1 ứng viên', 'warning');
                 return;
             }
 
-            // Kiểm tra trùng lặp người bầu
-            const voters = getVoters();
-            const voterLower = voterName.toLowerCase();
-            if (voters.includes(voterLower)) {
-                Swal.fire('Khoan đã!', 'Bạn đã tham gia bầu chọn rồi. Mỗi người chỉ được bầu 1 lần.', 'warning');
+            // Kiểm tra xem máy này đã bầu chưa
+            const hasVoted = localStorage.getItem('hasVotedClassPresident');
+            if (hasVoted) {
+                Swal.fire('Khoan đã!', 'Trình duyệt này đã tham gia bầu chọn rồi.', 'warning');
                 return;
             }
 
-            // Lưu dữ liệu vào LocalStorage
-            voters.push(voterLower);
-            localStorage.setItem('classVoters', JSON.stringify(voters));
+            // Đánh dấu đã bầu
+            localStorage.setItem('hasVotedClassPresident', 'true');
 
             const results = getResults();
             results[selectedCandidateId] = (results[selectedCandidateId] || 0) + 1;
@@ -211,7 +194,6 @@
             }).then(() => {
                 // Tải lại kết quả
                 renderResults();
-                document.getElementById('voterName').value = '';
                 selectedCandidateId = null;
                 
                 // Reset giao diện các card
@@ -237,7 +219,7 @@
             }).then((result) => {
                 if (result.isConfirmed) {
                     localStorage.removeItem('classVotes');
-                    localStorage.removeItem('classVoters');
+                    localStorage.removeItem('hasVotedClassPresident');
                     renderResults();
                     Swal.fire('Đã xoá!', 'Dữ liệu đã được làm mới.', 'success');
                 }
