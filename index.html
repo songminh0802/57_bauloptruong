@@ -172,15 +172,7 @@
                 return;
             }
 
-            // Kiểm tra xem máy này đã bầu chưa
-            const hasVoted = localStorage.getItem('hasVotedClassPresident');
-            if (hasVoted) {
-                Swal.fire('Khoan đã!', 'Trình duyệt này đã tham gia bầu chọn rồi.', 'warning');
-                return;
-            }
 
-            // Đánh dấu đã bầu
-            localStorage.setItem('hasVotedClassPresident', 'true');
 
             const results = getResults();
             results[selectedCandidateId] = (results[selectedCandidateId] || 0) + 1;
