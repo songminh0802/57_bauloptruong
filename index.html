@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bầu Chọn Lớp Trưởng</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f0fdf4; } 
+        .candidate-card { transition: all 0.2s ease; }
+        .candidate-card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+        .selected-card { border-color: #22c55e !important; background-color: #dcfce7 !important; } 
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8 text-slate-800">
+
+    <div class="max-w-2xl mx-auto">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-500 text-white mb-4 shadow-lg">
+                <i class="fa-solid fa-check-to-slot text-2xl"></i>
+            </div>
+            <h1 class="text-3xl font-bold text-slate-800 mb-2">Bầu Chọn Lớp Trưởng</h1>
+            <p class="text-slate-500">Nhiệm kỳ 2026 - 2027</p>
+        </div>
+
+        <!-- Main Card -->
+        <div class="bg-white rounded-2xl shadow-xl p-6 md:p-8 border border-slate-100">
+            
+            <!-- Form Bầu Chọn -->
+            <form id="voteForm">
+                <!-- Thông tin người bầu -->
+                <div class="mb-8">
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Họ và tên người bầu <span class="text-red-500">*</span></label>
+                    <input type="text" id="voterName" required
+                        class="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-colors"
+                        placeholder="Nhập đầy đủ họ tên của bạn">
+                </div>
+
+                <!-- Danh sách ứng viên -->
+                <div class="mb-8">
+                    <label class="block text-sm font-medium text-slate-700 mb-3">Danh sách ứng viên <span class="text-red-500">*</span></label>
+                    <div id="candidatesList" class="space-y-3">
+                        <!-- Render by JS -->
+                    </div>
+                </div>
+
+                <!-- Nút Submit -->
+                <button type="submit" id="btnSubmit" 
+                    class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-4 px-6 rounded-xl shadow-lg shadow-green-200 transition-all active:scale-[0.98] flex justify-center items-center gap-2">
+                    <i class="fa-solid fa-paper-plane"></i>
+                    Xác nhận Bầu chọn
+                </button>
+            </form>
+
+            <!-- Bảng kết quả (Hiện phía dưới) -->
+            <div id="resultsSection" class="mt-8 pt-8 border-t border-slate-200">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold text-slate-800"><i class="fa-solid fa-chart-simple text-green-500 mr-2"></i>Kết quả kiểm phiếu</h3>
+                    <button type="button" onclick="resetData()" class="text-xs text-red-500 hover:text-red-700 underline">Xoá dữ liệu</button>
+                </div>
+                <div id="resultsList" class="space-y-4">
+                    <!-- Render by JS -->
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // Dữ liệu ứng viên (Cứng trên web tĩnh)
+        const candidates = [
+            { id: 'UV01', name: 'Nguyễn Văn A', description: 'Thành tích học tập xuất sắc' },
+            { id: 'UV02', name: 'Trần Thị B', description: 'Năng nổ trong các hoạt động phong trào' },
+            { id: 'UV03', name: 'Lê Hoàng C', description: 'Gương mẫu, hòa đồng' }
+        ];
+
+        let selectedCandidateId = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            renderCandidates();
+            renderResults();
+        });
+
+        // 1. Khởi tạo dữ liệu LocalStorage nếu chưa có
+        function getResults() {
+            const savedVotes = localStorage.getItem('classVotes');
+            return savedVotes ? JSON.parse(savedVotes) : {};
+        }
+
+        function getVoters() {
+            const savedVoters = localStorage.getItem('classVoters');
+            return savedVoters ? JSON.parse(savedVoters) : [];
+        }
+
+        // 2. Hiển thị danh sách ứng viên
+        function renderCandidates() {
+            const container = document.getElementById('candidatesList');
+            container.innerHTML = '';
+            
+            candidates.forEach(cand => {
+                const card = document.createElement('div');
+                card.className = `candidate-card border-2 border-slate-200 rounded-xl p-4 cursor-pointer flex items-center gap-4`;
+                card.onclick = () => selectCandidate(cand.id, card);
+                
+                card.innerHTML = `
+                    <div class="radio-indicator w-6 h-6 rounded-full border-2 border-slate-300 flex items-center justify-center">
+                        <div class="inner-dot w-3 h-3 rounded-full bg-green-500 opacity-0 transition-opacity"></div>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="font-bold text-slate-800 text-lg">${cand.name}</h3>
+                        <p class="text-sm text-slate-500">${cand.description}</p>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // 3. Xử lý chọn ứng viên
+        function selectCandidate(id, cardElement) {
+            selectedCandidateId = id;
+            
+            // Xóa style đã chọn ở các thẻ khác
+            document.querySelectorAll('.candidate-card').forEach(el => {
+                el.classList.remove('selected-card');
+                el.querySelector('.inner-dot').classList.remove('opacity-100');
+                el.querySelector('.radio-indicator').classList.remove('border-green-500');
+            });
+            
+            // Đánh dấu thẻ được chọn
+            cardElement.classList.add('selected-card');
+            cardElement.querySelector('.inner-dot').classList.add('opacity-100');
+            cardElement.querySelector('.radio-indicator').classList.add('border-green-500');
+            cardElement.querySelector('.radio-indicator').classList.remove('border-slate-300');
+        }
+
+        // 4. Vẽ thanh kết quả
+        function renderResults() {
+            const container = document.getElementById('resultsList');
+            container.innerHTML = '';
+            
+            const results = getResults();
+            const totalVotes = Object.values(results).reduce((a, b) => a + b, 0);
+            
+            if(totalVotes === 0) {
+                container.innerHTML = '<p class="text-sm text-slate-500 text-center italic">Chưa có lượt bình chọn nào.</p>';
+                return;
+            }
+
+            candidates.forEach(cand => {
+                const votes = results[cand.id] || 0;
+                const percentage = totalVotes > 0 ? Math.round((votes / totalVotes) * 100) : 0;
+                
+                const html = `
+                    <div>
+                        <div class="flex justify-between text-sm mb-1">
+                            <span class="font-medium text-slate-700">${cand.name}</span>
+                            <span class="font-bold text-green-600">${votes} phiếu (${percentage}%)</span>
+                        </div>
+                        <div class="w-full bg-slate-100 rounded-full h-2.5">
+                            <div class="bg-green-500 h-2.5 rounded-full transition-all duration-1000" style="width: ${percentage}%"></div>
+                        </div>
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', html);
+            });
+        }
+
+        // 5. Submit form
+        document.getElementById('voteForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const voterName = document.getElementById('voterName').value.trim();
+            if(!voterName) {
+                Swal.fire('Thiếu thông tin', 'Vui lòng nhập họ tên của bạn', 'warning');
+                return;
+            }
+            if(!selectedCandidateId) {
+                Swal.fire('Thiếu thông tin', 'Vui lòng chọn 1 ứng viên', 'warning');
+                return;
+            }
+
+            // Kiểm tra trùng lặp người bầu
+            const voters = getVoters();
+            const voterLower = voterName.toLowerCase();
+            if (voters.includes(voterLower)) {
+                Swal.fire('Khoan đã!', 'Bạn đã tham gia bầu chọn rồi. Mỗi người chỉ được bầu 1 lần.', 'warning');
+                return;
+            }
+
+            // Lưu dữ liệu vào LocalStorage
+            voters.push(voterLower);
+            localStorage.setItem('classVoters', JSON.stringify(voters));
+
+            const results = getResults();
+            results[selectedCandidateId] = (results[selectedCandidateId] || 0) + 1;
+            localStorage.setItem('classVotes', JSON.stringify(results));
+
+            Swal.fire({
+                title: 'Thành công!',
+                text: 'Cảm ơn bạn đã tham gia bầu chọn.',
+                icon: 'success',
+                confirmButtonColor: '#22c55e'
+            }).then(() => {
+                // Tải lại kết quả
+                renderResults();
+                document.getElementById('voterName').value = '';
+                selectedCandidateId = null;
+                
+                // Reset giao diện các card
+                document.querySelectorAll('.candidate-card').forEach(el => {
+                    el.classList.remove('selected-card');
+                    el.querySelector('.inner-dot').classList.remove('opacity-100');
+                    el.querySelector('.radio-indicator').classList.remove('border-green-500');
+                    el.querySelector('.radio-indicator').classList.add('border-slate-300');
+                });
+            });
+        });
+
+        // 6. Tính năng xoá dữ liệu (Để test)
+        function resetData() {
+            Swal.fire({
+                title: 'Bạn chắc chứ?',
+                text: "Hành động này sẽ xoá toàn bộ kết quả bầu chọn hiện tại!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#94a3b8',
+                confirmButtonText: 'Đồng ý xoá'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    localStorage.removeItem('classVotes');
+                    localStorage.removeItem('classVoters');
+                    renderResults();
+                    Swal.fire('Đã xoá!', 'Dữ liệu đã được làm mới.', 'success');
+                }
+            });
+        }
+    </script>
+</body>
+</html>
